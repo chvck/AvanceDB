@@ -31,3 +31,10 @@ ADB_PID=$!
 sleep ${DELAY}
 popd
 
+PYTHONPATH=$PYTHONPATH:site-packages python test.py
+STATUS=$?
+sleep ${DELAY}
+kill $ADB_PID
+
+exit $STATUS
+
