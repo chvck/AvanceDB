@@ -113,6 +113,12 @@ class SessionTestCase(unittest.TestCase):
         
 class DbTestCase(unittest.TestCase):
 	test_db_name = 'avancedb-test'
+	
+	def tearDown(self):
+		try :
+			couch.delete(self.test_db_name)
+		except Exception:
+			pass
 
 	def test_get_standard_databases(self):
 		self.assertEqual(len(couch), 2)
@@ -121,6 +127,62 @@ class DbTestCase(unittest.TestCase):
 
 	def test_shouldnt_find_db(self):
 		self.assertFalse(self.test_db_name in couch)
+
+	def test_shouldnt_find_db_info(self):
+		r = requests.get(url + '/' + self.test_db_name + '/_info')
+		self.assertEqual(r.status_code, 404)
+		self.assertEqual(r.json()[u'error'], u'not_found')
+
+	def test_shouldnt_delete_db(self):
+		r = requests.delete(url + '/' + self.test_db_name)
+		self.assertEqual(r.status_code, 404)
+		self.assertEqual(r.json()[u'error'], u'not_found')
+
+	def test_shouldnt_delete_replicator_db(self):
+		r = requests.delete(url + '/_replicator')
+		self.assertEqual(r.status_code, 400)
+		self.assertEqual(r.json()[u'error'], u'illegal_database_name')
+
+	def test_shouldnt_delete_users_db(self):
+		r = requests.delete(url + '/_users')
+		self.assertEqual(r.status_code, 400)
+		self.assertEqual(r.json()[u'error'], u'illegal_database_name')
+
+	def test_shouldnt_create_database_bad_name(self):
+		with self.assertRaises(couchdb.ServerError) as se:
+			couch.create('_' + self.test_db_name)
+
+		self.assertEqual(se.exception[0][0], 400)
+		self.assertEqual(se.exception[0][1][0], 'illegal_database_name')
+
+	def test_should_create_database(self):
+		try :
+			couch.create(self.test_db_name)
+		except Exception:
+			self.fail('Failed to create database')
+
+	def test_should_get_created_database_and_system_databases(self):
+		couch.create(self.test_db_name)
+		self.assertEqual(len(couch), 3)
+		self.assertIsNotNone(couch['_replicator'])
+		self.assertIsNotNone(couch['_users'])
+		self.assertIsNotNone(couch[self.test_db_name])
+
+	def test_shouldnt_create_an_existing_database(self):
+		couch.create(self.test_db_name)
+		with self.assertRaises(couchdb.PreconditionFailed) as se:
+			couch.create(self.test_db_name)
+		
+		self.assertEqual(se.exception[0][0], 'file_exists')
+
+	def test_should_delete_a_database(self):
+		couch.create(self.test_db_name)
+		couch.delete(self.test_db_name)
+		r = requests.get(url + '/' + self.test_db_name + '/_info')
+		self.assertEqual(r.status_code, 404)
+		self.assertEqual(r.json()[u'error'], u'not_found')
+		
+		
 
 if __name__ == "__main__":
     unittest.main() # run all tests
