@@ -1,6 +1,7 @@
 import couchdb
 import unittest
 import requests
+from copy import deepcopy
 
 host = 'http://localhost'
 port = '15994'
@@ -82,105 +83,160 @@ class SessionTestCase(unittest.TestCase):
         
 class UuidTestCase(unittest.TestCase):
 
-	def test_get_one_uuid(self):
-		uuids = couch.uuids(1)
-		self.assertEqual(len(uuids), 1)
+    def test_get_one_uuid(self):
+        uuids = couch.uuids(1)
+        self.assertEqual(len(uuids), 1)
 
-	def test_get_zero_uuids_return_zero(self):
-		uuids = couch.uuids(0)
-		self.assertEqual(len(uuids), 0)
+    def test_get_zero_uuids_return_zero(self):
+        uuids = couch.uuids(0)
+        self.assertEqual(len(uuids), 0)
 
-	def test_get_minus_one_uuid(self):
-		uuids = couch.uuids(-1)
-		self.assertEqual(len(uuids), 0)
+    def test_get_minus_one_uuid(self):
+        uuids = couch.uuids(-1)
+        self.assertEqual(len(uuids), 0)
 
-	def test_get_one_hundred_uuids(self):
-		uuids = couch.uuids(100)
-		self.assertEqual(len(uuids), 100)
+    def test_get_one_hundred_uuids(self):
+        uuids = couch.uuids(100)
+        self.assertEqual(len(uuids), 100)
 
-	def test_get_one_thousand_uuids(self):
-		uuids = couch.uuids(1000)
-		self.assertEqual(len(uuids), 1000)
+    def test_get_one_thousand_uuids(self):
+        uuids = couch.uuids(1000)
+        self.assertEqual(len(uuids), 1000)
 
-	def test_get_ten_thousand_uuids(self):
-		with self.assertRaises(couchdb.ServerError) as se:
-			couch.uuids(10000)
+    def test_get_ten_thousand_uuids(self):
+        with self.assertRaises(couchdb.ServerError) as se:
+            couch.uuids(10000)
 
-		self.assertEqual(se.exception[0][0], 403)
-		self.assertEqual(se.exception[0][1][0], u'forbidden')
+        self.assertEqual(se.exception[0][0], 403)
+        self.assertEqual(se.exception[0][1][0], u'forbidden')
         
 class DbTestCase(unittest.TestCase):
-	test_db_name = 'avancedb-test'
-	
-	def tearDown(self):
-		try :
-			couch.delete(self.test_db_name)
-		except Exception:
-			pass
+    test_db_name = 'avancedb-test'
+    
+    def tearDown(self):
+        try :
+            couch.delete(self.test_db_name)
+        except Exception:
+            pass
 
-	def test_get_standard_databases(self):
-		self.assertEqual(len(couch), 2)
-		self.assertIsNotNone(couch['_replicator'])
-		self.assertIsNotNone(couch['_users'])
+    def test_get_standard_databases(self):
+        self.assertEqual(len(couch), 2)
+        self.assertIsNotNone(couch['_replicator'])
+        self.assertIsNotNone(couch['_users'])
 
-	def test_shouldnt_find_db(self):
-		self.assertFalse(self.test_db_name in couch)
+    def test_shouldnt_find_db(self):
+        self.assertFalse(self.test_db_name in couch)
 
-	def test_shouldnt_find_db_info(self):
-		r = requests.get(url + '/' + self.test_db_name + '/_info')
-		self.assertEqual(r.status_code, 404)
-		self.assertEqual(r.json()[u'error'], u'not_found')
+    def test_shouldnt_find_db_info(self):
+        r = requests.get(url + '/' + self.test_db_name + '/_info')
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()[u'error'], u'not_found')
 
-	def test_shouldnt_delete_db(self):
-		r = requests.delete(url + '/' + self.test_db_name)
-		self.assertEqual(r.status_code, 404)
-		self.assertEqual(r.json()[u'error'], u'not_found')
+    def test_shouldnt_delete_db(self):
+        r = requests.delete(url + '/' + self.test_db_name)
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()[u'error'], u'not_found')
 
-	def test_shouldnt_delete_replicator_db(self):
-		r = requests.delete(url + '/_replicator')
-		self.assertEqual(r.status_code, 400)
-		self.assertEqual(r.json()[u'error'], u'illegal_database_name')
+    def test_shouldnt_delete_replicator_db(self):
+        r = requests.delete(url + '/_replicator')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()[u'error'], u'illegal_database_name')
 
-	def test_shouldnt_delete_users_db(self):
-		r = requests.delete(url + '/_users')
-		self.assertEqual(r.status_code, 400)
-		self.assertEqual(r.json()[u'error'], u'illegal_database_name')
+    def test_shouldnt_delete_users_db(self):
+        r = requests.delete(url + '/_users')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()[u'error'], u'illegal_database_name')
 
-	def test_shouldnt_create_database_bad_name(self):
-		with self.assertRaises(couchdb.ServerError) as se:
-			couch.create('_' + self.test_db_name)
+    def test_shouldnt_create_database_bad_name(self):
+        with self.assertRaises(couchdb.ServerError) as se:
+            couch.create('_' + self.test_db_name)
 
-		self.assertEqual(se.exception[0][0], 400)
-		self.assertEqual(se.exception[0][1][0], 'illegal_database_name')
+        self.assertEqual(se.exception[0][0], 400)
+        self.assertEqual(se.exception[0][1][0], 'illegal_database_name')
 
-	def test_should_create_database(self):
-		try :
-			couch.create(self.test_db_name)
-		except Exception:
-			self.fail('Failed to create database')
+    def test_should_create_database(self):
+        try :
+            couch.create(self.test_db_name)
+        except Exception:
+            self.fail('Failed to create database')
 
-	def test_should_get_created_database_and_system_databases(self):
-		couch.create(self.test_db_name)
-		self.assertEqual(len(couch), 3)
-		self.assertIsNotNone(couch['_replicator'])
-		self.assertIsNotNone(couch['_users'])
-		self.assertIsNotNone(couch[self.test_db_name])
+    def test_should_get_created_database_and_system_databases(self):
+        couch.create(self.test_db_name)
+        self.assertEqual(len(couch), 3)
+        self.assertIsNotNone(couch['_replicator'])
+        self.assertIsNotNone(couch['_users'])
+        self.assertIsNotNone(couch[self.test_db_name])
 
-	def test_shouldnt_create_an_existing_database(self):
-		couch.create(self.test_db_name)
-		with self.assertRaises(couchdb.PreconditionFailed) as se:
-			couch.create(self.test_db_name)
-		
-		self.assertEqual(se.exception[0][0], 'file_exists')
+    def test_shouldnt_create_an_existing_database(self):
+        couch.create(self.test_db_name)
+        with self.assertRaises(couchdb.PreconditionFailed) as se:
+            couch.create(self.test_db_name)
+        
+        self.assertEqual(se.exception[0][0], 'file_exists')
 
-	def test_should_delete_a_database(self):
-		couch.create(self.test_db_name)
-		couch.delete(self.test_db_name)
-		r = requests.get(url + '/' + self.test_db_name + '/_info')
-		self.assertEqual(r.status_code, 404)
-		self.assertEqual(r.json()[u'error'], u'not_found')
-		
-		
+    def test_should_delete_a_database(self):
+        couch.create(self.test_db_name)
+        couch.delete(self.test_db_name)
+        r = requests.get(url + '/' + self.test_db_name + '/_info')
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()[u'error'], u'not_found')
+
+class DocsTestCase(unittest.TestCase):
+    test_db_name = 'avancedb-test'
+    testDocument = { 'lorem' : 'ipsum', 'pi': 3.14159, 'sunny': True, 'free_lunch': False, 'the_answer': 42,
+    'taxRate': None, 'fibonnaci': [0, 1, 1, 2, 3, 5, 8, 13 ], 'child': { 'hello': 'world' },
+    'events': [ None, 1969, 'avance', True, {}, [] ], 'data': '0123456789'}
+
+    for i in xrange(0, 8):
+        testDocument['data'] += testDocument['data']
+        
+    def setUp(self):
+            couch.create(self.test_db_name)
+
+    def tearDown(self):
+        try :
+            couch.delete(self.test_db_name)
+        except Exception:
+            pass
+
+    def test_should_not_get_non_existent_document(self):
+        doc = couch[self.test_db_name].get('test0')
+        self.assertIsNone(doc)
+        
+    def test_should_create_a_document_with_id(self):
+        test_doc = self.testDocument
+        test_doc['_id'] = 'test0'
+        doc = couch[self.test_db_name].save(test_doc)
+        self.assertEqual(doc[0], u'test0')
+        self.assertIsNotNone(doc[1])
+        
+    def test_should_not_create_document_with_bad_rev(self):
+        test_doc = deepcopy(self.testDocument)
+        test_doc['_id'] = 'test1'
+        test_doc['_rev'] = 'abcdef'
+        with self.assertRaises(couchdb.ServerError) as se:
+            couch[self.test_db_name].save(test_doc)
+
+        self.assertEqual(se.exception[0][0], 400)
+        self.assertEqual(se.exception[0][1][0], 'bad_request')
+        
+    def test_should_not_update_document_with_bad_rev(self):
+        test_doc = deepcopy(self.testDocument)
+        test_doc['_id'] = 'test1'
+        couch[self.test_db_name].save(test_doc)
+        test_doc['_rev'] = 'abcdef'
+        with self.assertRaises(couchdb.ResourceConflict) as se:
+            couch[self.test_db_name].save(test_doc)
+
+        self.assertEqual(se.exception[0][0], 'conflict')
+        
+    def test_get_a_document(self):
+        test_doc = deepcopy(self.testDocument)
+        test_doc['_id'] = 'test0'
+        couch[self.test_db_name].save(test_doc)
+        doc = couch[self.test_db_name].get('test0')
+        test_doc['_rev'] = doc['_rev']
+        self.assertEqual(doc, test_doc)
 
 if __name__ == "__main__":
     unittest.main() # run all tests
