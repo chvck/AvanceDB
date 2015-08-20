@@ -80,31 +80,36 @@ class SessionTestCase(unittest.TestCase):
         self.assertNotEqual(json[u'ok'], None)
         self.assertNotEqual(json[u'userCtx'], None)
         
-#class UuidTestCase(unittest.TestCase):
+class UuidTestCase(unittest.TestCase):
 
-	#def test_get_one_uuid(self):
-		#uuids = couch.uuids(1)
-		#self.assertEqual(len(uuids), 1)
+	def test_get_one_uuid(self):
+		uuids = couch.uuids(1)
+		self.assertEqual(len(uuids), 1)
 
-	#def test_get_zero_uuids_return_one(self):
-		#uuids = couch.uuids(0)
-		#self.assertEqual(len(uuids), 1)
+	def test_get_zero_uuids_return_zero(self):
+		uuids = couch.uuids(0)
+		self.assertEqual(len(uuids), 0)
 
-	#def test_get_minus_one_uuid(self):
-		#uuids = couch.uuids(0)
-		#self.assertEqual(len(uuids), 0)
+	def test_get_minus_one_uuid(self):
+		uuids = couch.uuids(-1)
+		self.assertEqual(len(uuids), 0)
 
-	#def test_get_one_hundred_uuids(self):
-		#uuids = couch.uuids(100)
-		#self.assertEqual(len(uuids), 100)
+	def test_get_one_hundred_uuids(self):
+		uuids = couch.uuids(100)
+		self.assertEqual(len(uuids), 100)
 
-	#def test_get_one_thousand_uuids(self):
-		#uuids = couch.uuids(1000)
-		#self.assertEqual(len(uuids), 1000)
+	def test_get_one_thousand_uuids(self):
+		uuids = couch.uuids(1000)
+		self.assertEqual(len(uuids), 1000)
 
-	#def test_get_ten_thousand_uuids(self):
+	def test_get_ten_thousand_uuids(self):
+		with self.assertRaises(couchdb.PreconditionFailed) as se:
+			couch.uuids(10000)
+		
+		self.assertEqual(se.exception[0][0], 403)
+		self.assertEqual(se.exception[0][0], 'forbidden')
 		#try:
-			#uuids = couch.uuids(10000)
+			#
 		#except couchdb.ServerError as e:
 			#print e
 			#status, message = e
