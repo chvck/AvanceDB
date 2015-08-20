@@ -103,18 +103,11 @@ class UuidTestCase(unittest.TestCase):
 		self.assertEqual(len(uuids), 1000)
 
 	def test_get_ten_thousand_uuids(self):
-		with self.assertRaises(couchdb.PreconditionFailed) as se:
+		with self.assertRaises(couchdb.ServerError) as se:
 			couch.uuids(10000)
-		
+
 		self.assertEqual(se.exception[0][0], 403)
-		self.assertEqual(se.exception[0][0], 'forbidden')
-		#try:
-			#
-		#except couchdb.ServerError as e:
-			#print e
-			#status, message = e
-			#self.assertEqual(status, 403)
-			#self.assertEqual(403, 'forbidden')
+		self.assertEqual(se.exception[0][1][0], u'forbidden')
         
 class DbTestCase(unittest.TestCase):
 	test_db_name = 'avancedb-test'
