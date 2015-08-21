@@ -292,9 +292,5 @@ class DocsTestCase(unittest.TestCase):
         
         self.assertEqual(se.exception[0][0], 'conflict')
         
-
-        
-        
-    
 if __name__ == "__main__":
     unittest.main() # run all tests
