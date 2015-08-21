@@ -237,6 +237,64 @@ class DocsTestCase(unittest.TestCase):
         doc = couch[self.test_db_name].get('test0')
         test_doc['_rev'] = doc['_rev']
         self.assertEqual(doc, test_doc)
+        
+    #fails
+    def test_get_a_document_all_docs(self):
+        test_doc = deepcopy(self.testDocument)
+        test_doc['_id'] = 'test0'
+        couch[self.test_db_name].save(test_doc)
+        docs = couch[self.test_db_name].view('_all_docs')
+        self.assertEqual(len(docs.rows), 1)
+        self.assertIsNotNone(docs.rows[0].id)
+        self.assertEqual(docs.rows[0].id, docs.rows[0].key)
 
+        self.assertIsNotNone(docs.rows[0].value)
+        self.assertIsNotNone(docs.rows[0].value['rev'])
+
+    def test_should_not_delete_doc_with_id_but_bad_rev(self):
+        test_doc = deepcopy(self.testDocument)
+        test_doc['_id'] = 'test0'
+        couch[self.test_db_name].save(test_doc)
+        test_doc['_rev'] = 'abcdef'
+        with self.assertRaises(couchdb.ServerError) as se:
+            couch[self.test_db_name].delete(test_doc)
+
+        self.assertEqual(se.exception[0][0], 400)
+        self.assertEqual(se.exception[0][1][0], 'bad_request')
+        
+    def test_should_delete_a_doc_by_id(self):
+        test_doc = deepcopy(self.testDocument)
+        test_doc['_id'] = 'test0'
+        
+        couch[self.test_db_name].save(test_doc)
+        couch[self.test_db_name].delete(test_doc)
+        doc = couch[self.test_db_name].get('test0')
+        self.assertIsNone(doc)
+
+    def test_should_not_delete_doc_that_doesnt_exist(self):
+        test_doc = deepcopy(self.testDocument)
+
+        with self.assertRaises(couchdb.ResourceNotFound) as se:
+            couch[self.test_db_name].delete(test_doc)
+
+        self.assertEqual(se.exception[0][0], u'not_found')
+        
+    def test_fail_to_update_doc_with_wrong_rev(self):
+        test_doc = deepcopy(self.testDocument)
+        test_doc['_id'] = 'test0'
+        couch[self.test_db_name].save(test_doc)
+        doc = couch[self.test_db_name].get('test0')
+        self.assertIsNotNone(doc['_rev'])
+        self.assertEqual(doc['_id'], 'test0')
+        doc['_rev'] = '00' + doc['_rev']
+        with self.assertRaises(couchdb.ResourceConflict) as se:
+            couch[self.test_db_name].save(doc)
+        
+        self.assertEqual(se.exception[0][0], 'conflict')
+        
+
+        
+        
+    
 if __name__ == "__main__":
     unittest.main() # run all tests
